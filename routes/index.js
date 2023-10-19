@@ -15,7 +15,7 @@ router.get('/', async(req, res) => {
 
 async function getApiData() {
     try { 
-        const res = await fetch('http://192.168.1.xxx')
+        const res = await fetch('http://192.168.1.139')
 
         if (!res.ok) {
             throw new Error('Failed to fetch data')

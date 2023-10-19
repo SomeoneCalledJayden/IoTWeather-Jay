@@ -1,18 +1,16 @@
-/*
-*  Weather Station App
-*  CGS Semester 2
-*  Task 2
-*  Author: your name here
-*/
-
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
 #include <math.h>
 #include <WiFi.h>
 #include <aREST.h>
-#include <DHT.h>
 
 // DHT11 sensor pins
 #define DHTPIN 4
 #define DHTTYPE DHT11
+
+// LED pin
+#define LED_PIN 2 // Define the pin where the LED is connected
 
 // Create aREST instance
 aREST rest = aREST();
@@ -23,12 +21,14 @@ DHT dht(DHTPIN, DHTTYPE, 15);
 // WiFi parameters
 const char* ssid = "Proxima";
 const char* password = "centauri";
+
 //Static IP address configuration
-// P connections 
-#define LISTEN_PORT           80
+IPAddress ip(192, 168, 1, 139); //set static ip
+IPAddress gateway(192, 168, 1, 1); //set gateway
+IPAddress subnet(255, 255, 255, 0);//set subnet
 
 // Create an instance of the server
-WiFiServer server(LISTEN_PORT);
+WiFiServer server(80);
 
 // Variables to be exposed to the API
 float temperature;
@@ -58,14 +58,10 @@ void setup(void)
   
   // Connect to WiFi
   WiFi.begin(ssid, password);
-  IPAddress ip(192, 168, 1, 139); //set static ip
-  IPAddress gateway(192, 168, 1, 1); //set getteway
   Serial.print(F("Setting static ip to : "));
   Serial.println(ip);
-  IPAddress subnet(255, 255, 255, 0);//set subnet
   WiFi.config(ip, gateway, subnet);
 
-  
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
@@ -83,7 +79,7 @@ void setup(void)
 }
 
 void loop() {
-  
+
   // Reading temperature and humidity
   temperature = dht.readTemperature();
   humidity = dht.readHumidity();
@@ -104,7 +100,18 @@ void loop() {
     Serial.println("Resetting..");
     ESP.restart();
   }
-  
+
+  // Map humidity to LED brightness
+  int ledBrightness = map(humidity, 0, 100, 0, 255);
+  analogWrite(LED_PIN, ledBrightness);
+
+  Serial.print("Humidity: ");
+  Serial.print(humidity);
+  Serial.print("%\t");
+  Serial.print("Temperature: ");
+  Serial.print(temperature);
+  Serial.println("°C");
+
   // Handle REST calls
   WiFiClient client = server.available();
   if (!client) {
@@ -114,15 +121,12 @@ void loop() {
     delay(1);
   }
   rest.handle(client);
-  //Serial.println("called");
 }
 
 // Custom function accessible by the API
 int ledControl(String command) {
-
   // Get state from command
   int state = command.toInt();
-
   digitalWrite(6,state);
   return 1;
 }
